@@ -40,5 +40,4 @@ procesar_dataset <- function(file_path = "datos/epa-http.csv") {
 }
 
 # Procesar y describir el dataset
-dataset <- procesar_dataset()
-summary(dataset)
+

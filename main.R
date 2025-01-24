@@ -60,3 +60,42 @@ main <- function() {
 
 # Llamar a la función principal y guardar el dataset en una variable global
 dataset <- main()
+
+
+explorar_datos <- function(dataset) {
+  # Crear una columna para clasificar si la respuesta tiene error
+  dataset <- dataset %>%
+    mutate(
+      Tiene_error = Respuesta_http >= 400,
+      Tipo_error = case_when(
+        Respuesta_http >= 400 & Respuesta_http < 500 ~ "4xx (Error del cliente)",
+        Respuesta_http >= 500 ~ "5xx (Error del servidor)",
+        TRUE ~ "Sin error"
+      )
+    )
+  
+  # Contar usuarios únicos que han tenido errores o no
+  usuarios_por_error <- dataset %>%
+    group_by(Tiene_error) %>%
+    summarise(Usuarios_unicos = n_distinct(Site)) %>%
+    mutate(Descripcion = if_else(Tiene_error, "Con error", "Sin error"))
+  
+  # Desglose de usuarios según el tipo de error
+  usuarios_por_tipo_error <- dataset %>%
+    filter(Tiene_error) %>%
+    group_by(Tipo_error) %>%
+    summarise(Usuarios_unicos = n_distinct(Site))
+  
+  # Mostrar resultados
+  cat("\nNúmero de usuarios únicos según si tuvieron errores:\n")
+  print(usuarios_por_error)
+  
+  cat("\nDesglose de usuarios únicos por tipo de error:\n")
+  print(usuarios_por_tipo_error)
+  
+  # Retornar tablas para su uso posterior
+  list(usuarios_por_error = usuarios_por_error, usuarios_por_tipo_error = usuarios_por_tipo_error)
+}
+
+# Llamar a la función con el dataset procesado
+resultados_exploracion <- explorar_datos(dataset)
