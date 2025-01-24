@@ -99,3 +99,43 @@ explorar_datos <- function(dataset) {
 
 # Llamar a la función con el dataset procesado
 resultados_exploracion <- explorar_datos(dataset)
+
+
+analizar_peticiones_http <- function(dataset) {
+  # Frecuencia de métodos HTTP en general
+  frecuencia_metodos <- dataset %>%
+    group_by(Metodo) %>%
+    summarise(Frecuencia = n()) %>%
+    arrange(desc(Frecuencia))
+  
+  # Filtrar peticiones que corresponden a imágenes
+  extensiones_imagen <- c(".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp", ".svg")
+  dataset_imagenes <- dataset %>%
+    filter(str_detect(tolower(Endpoint), paste(extensiones_imagen, collapse = "|")))
+  
+  # Frecuencia de métodos HTTP para peticiones a imágenes
+  frecuencia_metodos_imagenes <- dataset_imagenes %>%
+    group_by(Metodo) %>%
+    summarise(Frecuencia = n()) %>%
+    arrange(desc(Frecuencia))
+  
+  # Mostrar resultados
+  cat("\nFrecuencia de métodos HTTP en general:\n")
+  print(frecuencia_metodos)
+  
+  cat("\nFrecuencia de métodos HTTP para recursos de tipo imagen:\n")
+  print(frecuencia_metodos_imagenes)
+  
+  # Retornar los resultados para uso posterior
+  list(
+    general = frecuencia_metodos,
+    imagenes = frecuencia_metodos_imagenes
+  )
+}
+
+# Llamar a la función con el dataset procesado
+resultados_peticiones <- analizar_peticiones_http(dataset)
+
+
+
+
