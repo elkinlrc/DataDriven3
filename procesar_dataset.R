@@ -5,7 +5,7 @@ library(ggplot2)
 library(mltools)
 library(data.table)
 
-procesar_dataset <- function(file_path = "epa-http.csv") {
+procesar_dataset <- function(file_path = "datos/epa-http.csv") {
   # Leer y procesar el archivo
   dataset <- suppressWarnings(read_table(
     file_path,
