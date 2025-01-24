@@ -60,3 +60,82 @@ main <- function() {
 
 # Llamar a la función principal y guardar el dataset en una variable global
 dataset <- main()
+
+
+explorar_datos <- function(dataset) {
+  # Crear una columna para clasificar si la respuesta tiene error
+  dataset <- dataset %>%
+    mutate(
+      Tiene_error = Respuesta_http >= 400,
+      Tipo_error = case_when(
+        Respuesta_http >= 400 & Respuesta_http < 500 ~ "4xx (Error del cliente)",
+        Respuesta_http >= 500 ~ "5xx (Error del servidor)",
+        TRUE ~ "Sin error"
+      )
+    )
+  
+  # Contar usuarios únicos que han tenido errores o no
+  usuarios_por_error <- dataset %>%
+    group_by(Tiene_error) %>%
+    summarise(Usuarios_unicos = n_distinct(Site)) %>%
+    mutate(Descripcion = if_else(Tiene_error, "Con error", "Sin error"))
+  
+  # Desglose de usuarios según el tipo de error
+  usuarios_por_tipo_error <- dataset %>%
+    filter(Tiene_error) %>%
+    group_by(Tipo_error) %>%
+    summarise(Usuarios_unicos = n_distinct(Site))
+  
+  # Mostrar resultados
+  cat("\nNúmero de usuarios únicos según si tuvieron errores:\n")
+  print(usuarios_por_error)
+  
+  cat("\nDesglose de usuarios únicos por tipo de error:\n")
+  print(usuarios_por_tipo_error)
+  
+  # Retornar tablas para su uso posterior
+  list(usuarios_por_error = usuarios_por_error, usuarios_por_tipo_error = usuarios_por_tipo_error)
+}
+
+# Llamar a la función con el dataset procesado
+resultados_exploracion <- explorar_datos(dataset)
+
+
+analizar_peticiones_http <- function(dataset) {
+  # Frecuencia de métodos HTTP en general
+  frecuencia_metodos <- dataset %>%
+    group_by(Metodo) %>%
+    summarise(Frecuencia = n()) %>%
+    arrange(desc(Frecuencia))
+  
+  # Filtrar peticiones que corresponden a imágenes
+  extensiones_imagen <- c(".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp", ".svg")
+  dataset_imagenes <- dataset %>%
+    filter(str_detect(tolower(Endpoint), paste(extensiones_imagen, collapse = "|")))
+  
+  # Frecuencia de métodos HTTP para peticiones a imágenes
+  frecuencia_metodos_imagenes <- dataset_imagenes %>%
+    group_by(Metodo) %>%
+    summarise(Frecuencia = n()) %>%
+    arrange(desc(Frecuencia))
+  
+  # Mostrar resultados
+  cat("\nFrecuencia de métodos HTTP en general:\n")
+  print(frecuencia_metodos)
+  
+  cat("\nFrecuencia de métodos HTTP para recursos de tipo imagen:\n")
+  print(frecuencia_metodos_imagenes)
+  
+  # Retornar los resultados para uso posterior
+  list(
+    general = frecuencia_metodos,
+    imagenes = frecuencia_metodos_imagenes
+  )
+}
+
+# Llamar a la función con el dataset procesado
+resultados_peticiones <- analizar_peticiones_http(dataset)
+
+
+
+
