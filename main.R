@@ -45,7 +45,10 @@ main <- function() {
     file_path <- archivos_extraidos[1] # Usamos el primer archivo descomprimido
     
     # Paso 2: Procesar el dataset con la función del archivo procesar_dataset.R
-    dataset <- procesar_dataset(file_path)
+    # Construir la ruta del archivo descomprimido
+    file_path <- "epa-http.csv"  # Nombre del archivo dentro del directorio 'datos'
+    dataset <- procesar_dataset(file_path = file.path("datos", file_path))
+    
     
     # Paso 3: Describir el dataset
     describir_datos(dataset)
@@ -59,6 +62,7 @@ main <- function() {
 }
 
 # Llamar a la función principal y guardar el dataset en una variable global
+#para pode trabajar con ella de ahi en adelante
 dataset <- main()
 
 
@@ -137,5 +141,148 @@ analizar_peticiones_http <- function(dataset) {
 resultados_peticiones <- analizar_peticiones_http(dataset)
 
 
+#######5 y 6
 
+
+
+summary(dataset)
+
+#Crear un grafico en base a respuestas del servidor
+# Resumir códigos de estado
+Respuesta_summary <- table(dataset$Respuesta_http)
+Respuesta_percent <- prop.table(Respuesta_summary) * 100
+# Darle color al pastel
+library(RColorBrewer)
+myPalette <- brewer.pal(5, "Set2") 
+
+# Crear gráfico de pastel
+pie_chart <- pie(
+  Respuesta_percent,
+  labels = paste0(names(Respuesta_percent), " (", round(Respuesta_percent, 1), "%)"),
+  main = "Distribución de Códigos Respuestas Http",border="white", col=myPalette
+)
+
+
+#Crear un grafico en base a los Metodos usados
+# Resumir códigos de estado
+Metodo_summary <- table(dataset$Metodo)
+Metodo_percent <- prop.table(Metodo_summary) * 100
+# Darle color al pastel
+library(RColorBrewer)
+myPalette <- brewer.pal(5, "Set3") 
+
+# Crear gráfico de pastel
+pie_chart <- pie(
+  Metodo_percent,
+  labels = paste0(names(Metodo_percent), " (", round(Metodo_percent, 1), "%)"),
+  main = "Distribución de Metodos",border="white", col=myPalette
+)
+
+
+#########ejercicio 8
+analizar_clustering <- function(dataset, valores_k = c(3, 5)) {
+  # Paso 1: Generar la columna Longitud_Endpoint
+  dataset <- dataset %>%
+    mutate(Longitud_Endpoint = str_length(Endpoint))
+  
+  # Paso 2: Convertir columnas categóricas a numéricas con one_hot
+  dataset_one_hot <- one_hot(as.data.table(dataset), sparsifyNAs = TRUE)
+  
+  # Paso 3: Seleccionar solo columnas numéricas
+  dataset_numerico <- dataset_one_hot %>%
+    select_if(is.numeric) %>%
+    mutate_all(~replace(., is.na(.), 0)) # Imputar NAs con 0
+  
+  # Almacenar resultados de clustering
+  resultados_kmeans <- list()
+  
+  # Paso 4: Ejecutar k-means con distintos valores de k
+  for (k in valores_k) {
+    set.seed(123) # Para reproducibilidad
+    modelo_kmeans <- kmeans(dataset_numerico, centers = k, nstart = 10)
+    
+    # Guardar resultados en el dataset
+    dataset_numerico <- dataset_numerico %>%
+      mutate(Cluster = modelo_kmeans$cluster)
+    
+    # Guardar resultados en la lista
+    resultados_kmeans[[paste0("k=", k)]] <- list(
+      modelo = modelo_kmeans,
+      dataset_clusterizado = dataset_numerico
+    )
+  }
+  
+  return(resultados_kmeans)
+}
+
+# Paso 5: Visualizar resultados de clustering
+visualizar_clustering <- function(resultados_kmeans, k) {
+  # Extraer dataset clusterizado para el valor de k especificado
+  dataset_clusterizado <- resultados_kmeans[[paste0("k=", k)]]$dataset_clusterizado
+  
+  # Graficar los primeros dos componentes principales para visualización
+  ggplot(dataset_clusterizado, aes(x = Longitud_Endpoint, y = Bytes, color = factor(Cluster))) +
+    geom_point(alpha = 0.7) +
+    labs(
+      title = paste("Clustering con k =", k),
+      x = "Longitud del Endpoint",
+      y = "Bytes Servidos",
+      color = "Clúster"
+    ) +
+    theme_minimal()
+}
+
+# Llamar a las funciones con tu dataset procesado
+valores_k <- c(3, 5) # Elegir valores para k
+resultados_kmeans <- analizar_clustering(dataset, valores_k)
+
+# Visualizar los resultados para k = 3
+visualizar_clustering(resultados_kmeans, k = 3)
+
+
+####ejercicio 9 
+# Función para graficar clústeres
+graficar_clusters <- function(resultados_kmeans, k, var_x, var_y) {
+  # Extraer dataset clusterizado para el valor de k especificado
+  dataset_clusterizado <- resultados_kmeans[[paste0("k=", k)]]$dataset_clusterizado
+  
+  # Crear scatter plot
+  ggplot(dataset_clusterizado, aes_string(x = var_x, y = var_y, color = "factor(Cluster)")) +
+    geom_point(alpha = 0.7, size = 2) +
+    labs(
+      title = paste("Clustering con k =", k),
+      x = var_x,
+      y = var_y,
+      color = "Clúster"
+    ) +
+    theme_minimal()
+}
+
+# Función para seleccionar ejemplos representativos
+mostrar_ejemplos <- function(resultados_kmeans, k, n = 5) {
+  # Extraer dataset clusterizado para el valor de k especificado
+  dataset_clusterizado <- resultados_kmeans[[paste0("k=", k)]]$dataset_clusterizado
+  
+  # Seleccionar ejemplos aleatorios por clúster
+  ejemplos <- dataset_clusterizado %>%
+    group_by(Cluster) %>%
+    sample_n(min(n(), n)) %>%
+    ungroup()
+  
+  return(ejemplos)
+}
+
+# Generar gráficos para k = 3 y k = 5
+graficar_clusters(resultados_kmeans, k = 3, var_x = "Longitud_Endpoint", var_y = "Bytes")
+graficar_clusters(resultados_kmeans, k = 5, var_x = "Longitud_Endpoint", var_y = "Bytes")
+
+# Mostrar ejemplos representativos para k = 3
+ejemplos_k3 <- mostrar_ejemplos(resultados_kmeans, k = 3, n = 5)
+print("Ejemplos representativos para k = 3:")
+print(ejemplos_k3)
+
+# Mostrar ejemplos representativos para k = 5
+ejemplos_k5 <- mostrar_ejemplos(resultados_kmeans, k = 5, n = 5)
+print("Ejemplos representativos para k = 5:")
+print(ejemplos_k5)
 

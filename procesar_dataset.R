@@ -4,6 +4,8 @@ library(dplyr)
 library(ggplot2)
 library(mltools)
 library(data.table)
+library(tidyr)
+library(lubridate)
 
 procesar_dataset <- function(file_path = "datos/epa-http.csv") {
   # Leer y procesar el archivo
@@ -33,46 +35,32 @@ procesar_dataset <- function(file_path = "datos/epa-http.csv") {
   dataset$Metodo <- str_replace_all(dataset$Metodo, '"', "")
   dataset$Protocolo <- str_replace_all(dataset$Protocolo, '"', "")
   dataset$Timestamp <- str_replace_all(dataset$Timestamp, "\\[|\\]", "")
-  #dataset$Timestamp <- as.POSIXct(dataset$Timestamp, format = "[%d/:%H:%M:%S]", tz = "UTC")
+  # Procesar el Timestamp (separar y convertir)
+ 
+  #no se encontro una el anyo ni el dia entonces se toma por defecto 2025-01
+  # Dividir el Timestamp en Día, Hora, Minuto, Segundo
+  dataset <- dataset %>%
+    mutate(
+      Dia = as.numeric(str_split_fixed(Timestamp, ":", 4)[, 1]),
+      Hora = as.numeric(str_split_fixed(Timestamp, ":", 4)[, 2]),
+      Minuto = as.numeric(str_split_fixed(Timestamp, ":", 4)[, 3]),
+      Segundo = as.numeric(str_split_fixed(Timestamp, ":", 4)[, 4])
+    )
+  
+  # Crear la columna FechaHora
+  dataset <- dataset %>%
+    mutate(
+      FechaHora = as.POSIXct("2025-01-01 00:00:00", tz = "UTC") +
+        days(Dia - 1) + hours(Hora) + minutes(Minuto) + seconds(Segundo)
+    )
+  
+  
+  
   # Crear columna adicional para longitud de Endpoint
   dataset <- dataset %>% mutate(Longitud_Endpoint = str_length(Endpoint))
   
   return(dataset)
 }
 
-# Procesar y describir el dataset
 
 
-dataset <- procesar_dataset()
-summary(dataset)
-
-#Crear un grafico en base a respuestas del servidor
-# Resumir códigos de estado
-Respuesta_summary <- table(dataset$Respuesta_http)
-Respuesta_percent <- prop.table(Respuesta_summary) * 100
-# Darle color al pastel
-library(RColorBrewer)
-myPalette <- brewer.pal(5, "Set2") 
-
-# Crear gráfico de pastel
-pie_chart <- pie(
-  Respuesta_percent,
-  labels = paste0(names(Respuesta_percent), " (", round(Respuesta_percent, 1), "%)"),
-  main = "Distribución de Códigos Respuestas Http",border="white", col=myPalette
-)
-
-
-#Crear un grafico en base a los Metodos usados
-# Resumir códigos de estado
-Metodo_summary <- table(dataset$Metodo)
-Metodo_percent <- prop.table(Metodo_summary) * 100
-# Darle color al pastel
-library(RColorBrewer)
-myPalette <- brewer.pal(5, "Set3") 
-
-# Crear gráfico de pastel
-pie_chart <- pie(
-  Metodo_percent,
-  labels = paste0(names(Metodo_percent), " (", round(Metodo_percent, 1), "%)"),
-  main = "Distribución de Metodos",border="white", col=myPalette
-)
