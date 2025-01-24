@@ -54,7 +54,7 @@ procesar_dataset <- function(file_path = "datos/epa-http.csv") {
         days(Dia - 1) + hours(Hora) + minutes(Minuto) + seconds(Segundo)
     )
   
-  
+  dataset$FechaHora <- as.POSIXct(dataset$FechaHora, format = "%Y-%m-%d %H:%M:%S")
   
   # Crear columna adicional para longitud de Endpoint
   dataset <- dataset %>% mutate(Longitud_Endpoint = str_length(Endpoint))

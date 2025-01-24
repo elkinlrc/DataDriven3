@@ -141,7 +141,7 @@ analizar_peticiones_http <- function(dataset) {
 resultados_peticiones <- analizar_peticiones_http(dataset)
 
 
-#######5 y 6
+#######Ejercicios 5 y 6
 
 
 
@@ -177,6 +177,21 @@ pie_chart <- pie(
   labels = paste0(names(Metodo_percent), " (", round(Metodo_percent, 1), "%)"),
   main = "Distribución de Metodos",border="white", col=myPalette
 )
+
+#######Ejercicio 7
+# Agrupar por intervalo de tiempo (por ejemplo, cada hora) y contar las peticiones
+dataset_FrecFecha <- dataset %>%
+  mutate(Hour = floor_date(FechaHora, "hour")) %>%
+  group_by(Hour) %>%
+  summarise(Count = n())
+
+
+ggplot(dataset_FrecFecha, aes(x = Hour, y = Count)) +
+  geom_line(color = "blue") +
+  labs(title = "Número de Peticiones Servidas a lo Largo del Tiempo",
+       x = "Fecha y Hora",
+       y = "Número de Peticiones") +
+  theme_minimal()
 
 
 #########ejercicio 8
