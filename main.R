@@ -141,7 +141,7 @@ analizar_peticiones_http <- function(dataset) {
 resultados_peticiones <- analizar_peticiones_http(dataset)
 
 
-#######Ejercicios 5 y 6
+#######Ejercicio 6
 
 
 
