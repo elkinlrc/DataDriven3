@@ -149,6 +149,39 @@ servidor.
 
 ```{r setup4, include=TRUE}
 
+# Ejecutar el proceso principal
+main <- function() {
+  # Ruta del archivo ZIP
+  zip_path <- "epa-http.zip"
+  
+  # Paso 1: Descomprimir el archivo
+  archivos_extraidos <- descomprimir_archivo(zip_path)
+  
+  # Verificar que se descomprimió un archivo válido
+  if (length(archivos_extraidos) > 0) {
+    file_path <- archivos_extraidos[1] # Usamos el primer archivo descomprimido
+    
+    # Paso 2: Procesar el dataset con la función del archivo procesar_dataset.R
+    # Construir la ruta del archivo descomprimido
+    file_path <- "epa-http.csv"  # Nombre del archivo dentro del directorio 'datos'
+    dataset <- procesar_dataset(file_path = file.path("datos", file_path))
+    
+    
+    # Paso 3: Describir el dataset
+    describir_datos(dataset)
+    
+    # Retornar el dataset para uso posterior
+    return(dataset)
+  } else {
+    cat("No se encontraron archivos en el ZIP.\n")
+    return(NULL)
+  }
+}
+
+# Llamar a la función principal y guardar el dataset en una variable global
+#para pode trabajar con ella de ahi en adelante
+dataset <- main()
+
 explorar_datos <- function(dataset) {
   # Crear una columna para clasificar si la respuesta tiene error
   dataset <- dataset %>%
